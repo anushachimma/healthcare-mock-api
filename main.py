@@ -1,15 +1,14 @@
+
 from fastapi import FastAPI, HTTPException
 
 app = FastAPI(title="Healthcare Customer Service API")
 
 
-# =====================================================================
-# CHANGE 1 (UPDATED): Appointment data
-# Before: only APT45021 existed.
-# Now: one ID per status so every test case TC01-TC04 can be tested.
-# =====================================================================
+# ============================================================
+# USE CASE 1: APPOINTMENT MANAGEMENT
+# ============================================================
+
 appointments = {
-    # TC01 - CONFIRMED
     "APT45021": {
         "appointmentStatus": "CONFIRMED",
         "appointmentDate": "2026-10-12",
@@ -19,7 +18,6 @@ appointments = {
         "rescheduleEligible": True,
         "cancellationEligible": True
     },
-    # RESCHEDULED
     "APT45022": {
         "appointmentStatus": "RESCHEDULED",
         "appointmentDate": "2026-10-15",
@@ -29,7 +27,6 @@ appointments = {
         "rescheduleEligible": True,
         "cancellationEligible": True
     },
-    # CANCELLED
     "APT45023": {
         "appointmentStatus": "CANCELLED",
         "appointmentDate": "2026-10-14",
@@ -39,7 +36,6 @@ appointments = {
         "rescheduleEligible": False,
         "cancellationEligible": False
     },
-    # TC03 - RESCHEDULE_NOT_ALLOWED (restriction -> agent transfer)
     "APT45024": {
         "appointmentStatus": "RESCHEDULE_NOT_ALLOWED",
         "appointmentDate": "2026-10-11",
@@ -48,15 +44,15 @@ appointments = {
         "appointmentType": "Specialist Consultation",
         "rescheduleEligible": False,
         "cancellationEligible": False
-    },
+    }
 }
 
 
-# =====================================================================
-# CHANGE 2 (NEW): Insurance data  (Use Case 2)
-# =====================================================================
+# ============================================================
+# USE CASE 2: INSURANCE ELIGIBILITY
+# ============================================================
+
 insurance = {
-    # TC05 - ACTIVE + VERIFIED
     "INS784512": {
         "eligibilityStatus": "ACTIVE",
         "payerName": "ABC Health Insurance",
@@ -65,7 +61,6 @@ insurance = {
         "expirationDate": "2026-12-31",
         "verificationStatus": "VERIFIED"
     },
-    # TC06 - INACTIVE
     "INS784513": {
         "eligibilityStatus": "INACTIVE",
         "payerName": "ABC Health Insurance",
@@ -74,7 +69,6 @@ insurance = {
         "expirationDate": "2025-12-31",
         "verificationStatus": "VERIFIED"
     },
-    # TC07 - VERIFICATION_REQUIRED
     "INS784514": {
         "eligibilityStatus": "VERIFICATION_REQUIRED",
         "payerName": "ABC Health Insurance",
@@ -83,7 +77,6 @@ insurance = {
         "expirationDate": "2027-02-28",
         "verificationStatus": "PENDING"
     },
-    # PAYER_MISMATCH
     "INS784515": {
         "eligibilityStatus": "PAYER_MISMATCH",
         "payerName": "XYZ Insurance",
@@ -91,15 +84,15 @@ insurance = {
         "effectiveDate": "2026-01-01",
         "expirationDate": "2026-12-31",
         "verificationStatus": "MISMATCH"
-    },
+    }
 }
 
 
-# =====================================================================
-# CHANGE 3 (NEW): Lab report data  (Use Case 3)
-# =====================================================================
+# ============================================================
+# USE CASE 3: LAB REPORT STATUS
+# ============================================================
+
 lab_reports = {
-    # TC08 - PROCESSING
     "LAB90231": {
         "reportStatus": "PROCESSING",
         "testName": "Complete Blood Count",
@@ -108,7 +101,6 @@ lab_reports = {
         "reportAvailable": False,
         "deliveryMethod": "Patient Portal"
     },
-    # TC09 - AVAILABLE
     "LAB90232": {
         "reportStatus": "AVAILABLE",
         "testName": "Lipid Profile",
@@ -117,7 +109,6 @@ lab_reports = {
         "reportAvailable": True,
         "deliveryMethod": "Patient Portal"
     },
-    # TC10 - DELAYED
     "LAB90233": {
         "reportStatus": "DELAYED",
         "testName": "Thyroid Panel",
@@ -126,7 +117,6 @@ lab_reports = {
         "reportAvailable": False,
         "deliveryMethod": "Patient Portal"
     },
-    # ACCESS_ERROR
     "LAB90234": {
         "reportStatus": "ACCESS_ERROR",
         "testName": "Urine Analysis",
@@ -134,80 +124,103 @@ lab_reports = {
         "expectedAvailableDate": "2026-10-08",
         "reportAvailable": False,
         "deliveryMethod": "Patient Portal"
-    },
+    }
 }
 
 
+# ============================================================
+# HOME ENDPOINT
+# ============================================================
+
 @app.get("/")
 def home():
-    return {"message": "Healthcare Customer Service API is running"}
+    return {
+        "message": "Healthcare Customer Service API is running"
+    }
 
 
-# ---------------------------------------------------------------------
-# Use Case 1: Appointment  (UNCHANGED logic, plus test-error ID)
-# ---------------------------------------------------------------------
+# ============================================================
+# APPOINTMENT ENDPOINT
+# ============================================================
+
 @app.get("/appointments/{appointmentId}")
 def get_appointment_details(appointmentId: str):
-    # CHANGE 4 (NEW): simulate backend failure for error-handling test
-    if appointmentId.upper() == "APT50000":
-        raise HTTPException(status_code=500, detail="Internal server error")
+    appointment_id = appointmentId.strip().upper()
 
-    appointment = appointments.get(appointmentId.upper())
+    if appointment_id == "APT50000":
+        raise HTTPException(
+            status_code=500,
+            detail="Simulated appointment backend failure"
+        )
 
-    if appointment is None:
+    record = appointments.get(appointment_id)
+
+    if record is None:
         return {
+            "appointmentId": appointment_id,
             "appointmentStatus": "NOT_FOUND",
-            "appointmentId": appointmentId,
             "message": "Appointment not found"
         }
 
     return {
-        "appointmentId": appointmentId.upper(),
-        **appointment
-    }
-
-
-# ---------------------------------------------------------------------
-# CHANGE 5 (NEW): Use Case 2 endpoint
-# ---------------------------------------------------------------------
-@app.get("/insurance/{memberId}")
-def get_insurance_eligibility(memberId: str):
-    if memberId.upper() == "INS500000":
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-    record = insurance.get(memberId.upper())
-
-    if record is None:
-        return {
-            "eligibilityStatus": "NOT_FOUND",
-            "memberId": memberId,
-            "message": "Member not found"
-        }
-
-    return {
-        "memberId": memberId.upper(),
+        "appointmentId": appointment_id,
         **record
     }
 
 
-# ---------------------------------------------------------------------
-# CHANGE 6 (NEW): Use Case 3 endpoint
-# ---------------------------------------------------------------------
-@app.get("/lab-reports/{reportId}")
-def get_lab_report_status(reportId: str):
-    if reportId.upper() == "LAB50000":
-        raise HTTPException(status_code=500, detail="Internal server error")
+# ============================================================
+# INSURANCE ENDPOINT
+# ============================================================
 
-    report = lab_reports.get(reportId.upper())
+@app.get("/insurance/{memberId}")
+def get_insurance_eligibility(memberId: str):
+    member_id = memberId.strip().upper()
 
-    if report is None:
+    if member_id == "INS500000":
+        raise HTTPException(
+            status_code=500,
+            detail="Simulated insurance backend failure"
+        )
+
+    record = insurance.get(member_id)
+
+    if record is None:
         return {
-            "reportStatus": "NOT_FOUND",
-            "reportId": reportId,
-            "message": "Report not found"
+            "memberId": member_id,
+            "eligibilityStatus": "NOT_FOUND",
+            "message": "Insurance member not found"
         }
 
     return {
-        "reportId": reportId.upper(),
-        **report
+        "memberId": member_id,
+        **record
+    }
+
+
+# ============================================================
+# LAB REPORT ENDPOINT
+# ============================================================
+
+@app.get("/lab-reports/{reportId}")
+def get_lab_report_status(reportId: str):
+    report_id = reportId.strip().upper()
+
+    if report_id == "LAB50000":
+        raise HTTPException(
+            status_code=500,
+            detail="Simulated lab report backend failure"
+        )
+
+    record = lab_reports.get(report_id)
+
+    if record is None:
+        return {
+            "reportId": report_id,
+            "reportStatus": "NOT_FOUND",
+            "message": "Lab report not found"
+        }
+
+    return {
+        "reportId": report_id,
+        **record
     }
