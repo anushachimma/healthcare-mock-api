@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 app = FastAPI(title="Healthcare Customer Service API")
 
@@ -140,10 +140,9 @@ def home():
 
 
 # ============================================================
-# APPOINTMENT ENDPOINT
+# APPOINTMENT LOOKUP LOGIC
 # ============================================================
 
-@app.get("/appointments/{appointmentId}")
 def get_appointment_details(appointmentId: str):
     appointment_id = appointmentId.strip().upper()
 
@@ -166,6 +165,20 @@ def get_appointment_details(appointmentId: str):
         "appointmentId": appointment_id,
         **record
     }
+
+
+# Original URL: /appointments/APT45021
+@app.get("/appointments/{appointmentId}")
+def appointment_by_path(appointmentId: str):
+    return get_appointment_details(appointmentId)
+
+
+# Fixed URL: /appointment-lookup?appointmentId=APT45021
+@app.get("/appointment-lookup")
+def appointment_lookup(
+    appointmentId: str = Query(...)
+):
+    return get_appointment_details(appointmentId)
 
 
 # ============================================================
@@ -198,10 +211,9 @@ def get_insurance_eligibility(memberId: str):
 
 
 # ============================================================
-# LAB REPORT ENDPOINT
+# LAB REPORT LOOKUP LOGIC
 # ============================================================
 
-@app.get("/lab-reports/{reportId}")
 def get_lab_report_status(reportId: str):
     report_id = reportId.strip().upper()
 
@@ -224,3 +236,17 @@ def get_lab_report_status(reportId: str):
         "reportId": report_id,
         **record
     }
+
+
+# Original URL: /lab-reports/LAB90231
+@app.get("/lab-reports/{reportId}")
+def lab_report_by_path(reportId: str):
+    return get_lab_report_status(reportId)
+
+
+# Fixed URL: /lab-report-lookup?reportId=LAB90231
+@app.get("/lab-report-lookup")
+def lab_report_lookup(
+    reportId: str = Query(...)
+):
+    return get_lab_report_status(reportId)
