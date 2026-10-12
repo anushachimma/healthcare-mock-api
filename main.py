@@ -185,8 +185,8 @@ def appointment_lookup(
 # INSURANCE ENDPOINT
 # ============================================================
 
-@app.get("/insurance/{memberId}")
-def get_insurance_eligibility(memberId: str):
+@app.get("/insurance-lookup")
+def insurance_lookup(memberId: str):
     member_id = memberId.strip().upper()
 
     if member_id == "INS500000":
